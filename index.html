@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Progressão de Carga</title>
+<meta name="theme-color" content="#0b0d12">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Progressão">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0b0d12; --card:#151924; --card2:#1d2230; --line:#262c3b;
+    --tx:#eef1f7; --tx2:#8b93a7; --acc:#5b8dff; --acc2:#7aa5ff;
+    --ok:#33c477; --warn:#f5a524; --bad:#f4525c; --r:20px;
+    --sab:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scrollbar-width:thin}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font:15px/1.5 -apple-system,system-ui,'Segoe UI',Roboto,sans-serif;
+    padding-bottom:calc(96px + var(--sab));user-select:none}
+  input,textarea{user-select:text}
+
+  /* ---- top bar ---- */
+  header{position:sticky;top:0;z-index:10;background:#0b0d12d9;backdrop-filter:blur(16px);
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;display:flex;align-items:center;gap:8px}
+  header h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0;flex:1;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header button{border:none;background:var(--card2);width:38px;height:38px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:16px;padding:0;flex:none}
+  #backBtn{width:auto;padding:0 14px;border-radius:999px;font-size:14px}
+
+  .wrap{max-width:640px;margin:0 auto;padding:6px 16px 16px}
+
+  /* ---- buttons ---- */
+  button{font:inherit;cursor:pointer;border-radius:14px;border:none;background:var(--card2);
+    color:var(--tx);padding:12px 16px;font-weight:600;transition:transform .06s,opacity .15s}
+  button.primary{background:linear-gradient(135deg,var(--acc),#3f6fe0);color:#fff;
+    box-shadow:0 4px 16px #5b8dff40}
+  button.ghost{background:transparent;color:var(--tx2)}
+  button.danger{background:#f4525c14;color:var(--bad)}
+  button:active{transform:scale(.97);opacity:.85}
+
+  /* ---- inputs ---- */
+  input,select,textarea{font:inherit;background:var(--card2);color:var(--tx);
+    border:1.5px solid transparent;border-radius:14px;padding:13px 14px;width:100%;
+    appearance:none;-webkit-appearance:none;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--acc);background:#1d2230}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b93a7' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:34px}
+  label{display:block;font-size:12px;font-weight:600;color:var(--tx2);margin:0 0 6px;letter-spacing:.02em}
+
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+
+  /* ---- cards ---- */
+  .card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px;
+    box-shadow:0 1px 0 #ffffff08 inset}
+  .card.click{cursor:pointer;transition:transform .08s}
+  .card.click:active{transform:scale(.985)}
+  .row{display:flex;align-items:center;gap:10px}
+  .sp{flex:1}
+  .muted{color:var(--tx2);font-size:13px}
+  .big{font-size:30px;font-weight:800;letter-spacing:-.8px}
+
+  /* ---- badges & pills ---- */
+  .badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.03em;white-space:nowrap}
+  .b-proc{background:#3a2f1466;color:#f5c451}
+  .b-evo{background:#12321f88;color:#57d894}
+  .b-up{background:#14294a88;color:#7fb0ff}
+  .b-new{background:#2b234088;color:#b79cf5}
+  .b-heavy{background:#3d1c2088;color:#ff8a91}
+  .pill{display:inline-block;background:var(--card2);border-radius:10px;padding:4px 10px;
+    font-size:13px;font-weight:600;margin:0 5px 5px 0}
+  .pill.max{background:#12321f;color:#7ce6ab}
+  .pill.low{background:#3d1c20;color:#ff9aa0}
+  .pill.warnq{background:#3a2f14;color:#ffd27d}
+
+  /* ---- recomendação ---- */
+  .rec{background:var(--card2);border-radius:14px;padding:14px;position:relative;overflow:hidden}
+  .rec::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--acc)}
+  .rec.up::before{background:var(--ok)} .rec.down::before{background:var(--bad)} .rec.hold::before{background:var(--warn)}
+  .rec h4{margin:0 0 4px;font-size:15px}
+
+  /* ---- segmented control ---- */
+  .tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin-bottom:16px;gap:4px}
+  .tabs button{flex:1;padding:9px 4px;font-size:13.5px;border-radius:11px;background:transparent;color:var(--tx2)}
+  .tabs button[aria-selected=true]{background:var(--card2);color:var(--tx);box-shadow:0 2px 8px #0006}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--tx2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  tr:last-child td{border-bottom:none}
+
+  /* ---- bottom sheet dialog ---- */
+  dialog{background:var(--card);color:var(--tx);border:none;padding:0;width:100%;max-width:640px;
+    max-height:92dvh;margin:auto auto 0;border-radius:24px 24px 0 0;
+    box-shadow:0 -8px 40px #000a}
+  dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
+  dialog[open]{animation:sheetUp .28s cubic-bezier(.2,.9,.3,1)}
+  @keyframes sheetUp{from{transform:translateY(60px);opacity:.4}to{transform:none;opacity:1}}
+  .dlg-head{position:relative;padding:22px 20px 12px;font-weight:800;font-size:19px;letter-spacing:-.3px;display:flex;align-items:center}
+  .dlg-head::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    width:42px;height:4px;border-radius:99px;background:var(--line)}
+  .dlg-body{padding:8px 20px 16px;overflow:auto;max-height:62dvh}
+  .dlg-foot{padding:12px 20px calc(16px + var(--sab));display:flex;gap:10px}
+  .dlg-foot button{flex:1;padding:14px}
+  @media(min-width:700px){
+    dialog{margin:auto;border-radius:24px}
+    dialog[open]{animation:none}
+    .dlg-head::before{display:none}
+  }
+
+  /* ---- FAB ---- */
+  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + var(--sab));z-index:9;
+    border-radius:999px;padding:15px 26px;font-size:15px;font-weight:700;
+    box-shadow:0 8px 28px #5b8dff55,0 2px 8px #0008}
+  .fab:active{transform:translateX(-50%) scale(.96)}
+
+  /* ---- combobox ---- */
+  .combo{position:relative}
+  .combo input{padding-right:38px}
+  .combo::after{content:'';position:absolute;right:15px;bottom:19px;width:10px;height:10px;pointer-events:none;
+    border-right:2px solid var(--tx2);border-bottom:2px solid var(--tx2);transform:rotate(45deg) translateY(-3px)}
+  .combo-list{display:none;position:absolute;top:100%;left:0;right:0;z-index:40;background:#232939;
+    border-radius:14px;margin-top:6px;max-height:198px;overflow:auto;box-shadow:0 12px 32px #000c;scrollbar-width:thin}
+  .combo-opt{padding:12px 15px;font-weight:500;cursor:pointer}
+  .combo-opt:hover,.combo-opt:active{background:var(--acc);color:#fff}
+  .combo-opt+.combo-opt{border-top:1px solid #ffffff0a}
+  .combo-tag{font-size:11px;color:var(--tx2);float:right;margin-top:2px}
+  .combo-opt:hover .combo-tag{color:#ffffffb0}
+
+  /* ---- chips de treino ---- */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 14px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;background:var(--card);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;color:var(--tx2)}
+  .chip.on{background:linear-gradient(135deg,var(--acc),#3f6fe0);color:#fff;box-shadow:0 4px 14px #5b8dff40}
+  .chip.add{background:transparent;border:1.5px dashed var(--line)}
+
+  /* ---- checkbox ---- */
+  .checkrow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+  .checkrow:last-child{border-bottom:none}
+  .checkrow input{width:22px;height:22px;flex:none;accent-color:var(--acc);border-radius:6px}
+  .checkrow .muted{margin-left:auto}
+
+  .setrow{display:grid;grid-template-columns:44px 1fr 1.3fr;gap:8px;align-items:center;margin-bottom:10px}
+  .setrow .muted{text-align:center;font-weight:700}
+  .empty{text-align:center;color:var(--tx2);padding:70px 20px}
+  .empty .icon{font-size:52px;margin-bottom:10px}
+  .sep{height:1px;background:var(--line);margin:14px 0}
+  h3.group{color:var(--tx2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:20px 4px 10px}
+  @media(max-width:520px){.g3{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Progressão de Carga</h1>
+  <button class="ghost" id="backBtn" style="display:none">← Voltar</button>
+  <button class="ghost" id="exportBtn" title="Exportar dados">⇩</button>
+  <button class="ghost" id="importBtn" title="Importar dados">⇧</button>
+</header>
+<div class="wrap" id="app"></div>
+<button class="primary fab" id="fab">+ Exercício</button>
+
+<dialog id="dlg">
+  <div class="dlg-head" id="dlgTitle"></div>
+  <div class="dlg-body" id="dlgBody"></div>
+  <div class="dlg-foot" id="dlgFoot"></div>
+</dialog>
+<input type="file" id="fileIn" accept="application/json" style="display:none">
+
+<script>
+/* ===================== Modelo & persistência ===================== */
+const KEY = 'progressao-carga-v1';
+const QUALITY = {
+  correta:      {label:'Execução correta',     valid:true},
+  comprometida: {label:'Execução comprometida',valid:false},
+  ajuda:        {label:'Ajuda de outra pessoa',valid:false},
+  parcial:      {label:'Repetição parcial',    valid:false},
+  falha:        {label:'Falha técnica',        valid:false},
+};
+const STATE = {
+  PROCURANDO: {label:'Procurando carga',   cls:'b-proc'},
+  EVOLUINDO:  {label:'Evoluindo repetições',cls:'b-evo'},
+  PRONTO:     {label:'Pronto para aumentar',cls:'b-up'},
+  NOVA:       {label:'Nova carga',          cls:'b-new'},
+  EXCESSIVA:  {label:'Carga excessiva',     cls:'b-heavy'},
+};
+const uid = () => Math.random().toString(36).slice(2,10);
+
+let db = load();
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(KEY));
+    if(d && Array.isArray(d.exercises)){ d.workouts ||= []; return d; } }catch(e){}
+  return {exercises:[], workouts:[]};
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function ex(id){ return db.exercises.find(e=>e.id===id); }
+
+/* ===================== Motor de regras ===================== */
+// Repetições válidas para efeito de progressão (RN07): só contam com execução correta.
+function validReps(s){ return QUALITY[s.quality]?.valid ? s.reps : 0; }
+
+function analyze(e, sets, load_, isTest){
+  const {repMin, repMax} = e;
+  const eff = sets.map(validReps);
+  const raw = sets.map(s=>s.reps);
+  const bestRaw = Math.max(...raw);
+  const worstRaw = Math.min(...raw);
+  const allMax = eff.every(r=>r>=repMax); // aumento exige execução válida (RN07)
+  const anyInvalid = sets.some(s=>!QUALITY[s.quality]?.valid);
+  const inc = e.increment||1;
+  const prevLoad = lastDifferentLoad(e, load_);
+  const increased = prevLoad!=null && load_ > prevLoad;
+
+  // RN02 / RN06 — abaixo do mínimo (pelas reps brutas: execução inválida
+  // não autoriza aumento, mas também não força redução sozinha)
+  if(worstRaw < repMin){
+    // RN06: preferir a carga anterior ou um incremento intermediário disponível
+    let target = round(load_ - inc);
+    let extra = '';
+    if(increased && prevLoad!=null){
+      target = Math.max(prevLoad, target);
+      extra = target > prevLoad
+        ? ` Se ainda ficar pesado, retorne para a carga anterior de ${fmt(prevLoad)}.`
+        : ` (retornando para a carga anterior)`;
+    }
+    if(target <= 0) target = load_;
+    return {
+      action:'down', state: isTest ? 'PROCURANDO' : 'EXCESSIVA',
+      nextLoad: target,
+      title:'Carga muito alta.',
+      msg:`Você fez ${worstRaw} repetição(ões) na pior série. Sua meta é entre ${repMin} e ${repMax}. Diminua a carga para ${loadTxt(e,target)}.${extra}`
+    };
+  }
+
+  // RN01 — teste de carga acima do máximo
+  if(isTest && bestRaw > repMax){
+    const target = round(load_ + inc);
+    return {action:'up', state:'PROCURANDO', nextLoad:target,
+      title:'Carga leve.',
+      msg:`Você fez ${bestRaw} repetições, acima do máximo de ${repMax}. Aumente a carga para ${loadTxt(e,target)}.`};
+  }
+
+  // RN04 — todas as séries no topo da faixa
+  if(allMax){
+    const target = round(load_ + inc);
+    return {action:'up', state:'PRONTO', nextLoad:target,
+      title:'Hora de subir.',
+      msg:`Você atingiu ${repMax} repetições em todas as ${sets.length} série(s). Aumente a carga para ${loadTxt(e,target)} no próximo treino. Espere as repetições caírem para perto de ${repMin} — isso é progressão válida.`};
+  }
+
+  // RN07 — atingiu o máximo, mas com execução comprometida
+  if(anyInvalid && raw.every(r=>r>=repMax)){
+    return {action:'hold', state:'EVOLUINDO', nextLoad:load_,
+      title:'Ainda não conta.',
+      msg:`Você chegou a ${repMax} repetições, mas alguma série teve execução comprometida. Mantenha ${loadTxt(e,load_)} e repita com execução correta antes de subir.`};
+  }
+
+  // Dentro da faixa
+  const state = increased ? 'NOVA' : 'EVOLUINDO';
+  const alvo = Math.min(worstRaw + 1, repMax);
+  let title = 'Carga correta.';
+  let msg = `Você fez ${worstRaw} repetições na pior série. Mantenha ${loadTxt(e,load_)} e tente ${alvo} no próximo treino.`;
+  if(increased){
+    title = 'Nova progressão iniciada.';
+    msg = `Você aumentou a carga para ${loadTxt(e,load_)} e fez ${worstRaw} repetições. Excelente. Agora mantenha o peso e evolua novamente até ${repMax}.`;
+  } else if(worstRaw === repMax - 1){
+    title = 'Quase lá.';
+    msg = `Você fez ${worstRaw} repetições. Mantenha a carga e tente alcançar ${repMax} em todas as séries.`;
+  } else if(isTest){
+    title = 'Carga adequada.';
+    msg = `Você fez ${worstRaw} repetições, dentro da faixa ${repMin}–${repMax}. Use ${loadTxt(e,load_)} nos próximos treinos.`;
+  }
+  return {action:'hold', state, nextLoad:load_, title, msg};
+}
+
+function lastDifferentLoad(e, currentLoad){
+  for(let i=e.history.length-1;i>=0;i--){
+    if(e.history[i].load !== currentLoad) return e.history[i].load;
+  }
+  return null;
+}
+const round = n => Math.round(n*100)/100;
+const fmt = n => (Math.round(n*100)/100).toString().replace('.',',');
+const u = e => e.unit==='kg'?'kg':e.unit==='lb'?'lb':'nível';
+const loadTxt = (e,v) => e.unit==='nivel' ? `nível ${fmt(v)}` : `${fmt(v)} ${e.unit}`;
+
+/* ===================== Recordes ===================== */
+function records(e){
+  let carga=null, volume=null, repsByLoad={};
+  e.history.forEach(h=>{
+    const validSets = h.sets.filter(s=>QUALITY[s.quality]?.valid);
+    if(validSets.length && (carga===null || h.load>carga.load)) carga={load:h.load,date:h.date};
+    if(volume===null || h.volume>volume.volume) volume={volume:h.volume,date:h.date,load:h.load};
+    validSets.forEach(s=>{
+      const k=h.load;
+      if(!repsByLoad[k] || s.reps>repsByLoad[k].reps) repsByLoad[k]={reps:s.reps,date:h.date};
+    });
+  });
+  return {carga, volume, repsByLoad};
+}
+
+/* ===================== Navegação ===================== */
+let view = {name:'list', id:null, tab:'treino', workout:null};
+function go(v){ view={...view,...v}; render(); }
+
+const app = document.getElementById('app');
+document.getElementById('backBtn').onclick = ()=>go({name:'list',id:null});
+document.getElementById('fab').onclick = ()=> view.name==='list' ? formExercicio() : formTreino(view.id);
+
+function render(){
+  document.getElementById('backBtn').style.display = view.name==='list'?'none':'';
+  document.getElementById('fab').textContent = view.name==='list'?'+ Exercício':'+ Registrar treino';
+  view.name==='list' ? renderList() : renderDetail();
+}
+
+/* ===================== Lista ===================== */
+function renderList(){
+  document.getElementById('title').textContent='Progressão de Carga';
+  if(view.workout && !db.workouts.find(w=>w.id===view.workout)) view.workout=null;
+  const w = db.workouts.find(x=>x.id===view.workout);
+
+  // chips: Todos · Treino A · Treino B · + Treino  (tocar de novo no selecionado = editar)
+  const chips = `<div class="chips">
+    <button class="chip ${!view.workout?'on':''}" data-w="">Todos</button>
+    ${db.workouts.map(x=>`<button class="chip ${view.workout===x.id?'on':''}" data-w="${x.id}">${esc(x.name)}${view.workout===x.id?' ✎':''}</button>`).join('')}
+    <button class="chip add" data-neww="1">+ Treino</button>
+  </div>`;
+
+  if(!db.exercises.length){
+    app.innerHTML = chips + `<div class="empty"><div class="icon">🏋️</div><p><strong>Nenhum exercício ainda.</strong></p>
+      <p class="muted">Cadastre um exercício e faça o <em>teste de carga</em> para descobrir o peso inicial.</p></div>`;
+    bindChips(); return;
+  }
+
+  let list = db.exercises;
+  if(w) list = w.exIds.map(id=>ex(id)).filter(Boolean);
+
+  const groups = {};
+  list.forEach(e=>{ (groups[e.muscle||'Sem grupo'] ||= []).push(e); });
+  const body = !list.length
+    ? `<div class="empty"><div class="icon">📋</div><p><strong>Treino vazio.</strong></p>
+       <p class="muted">Toque de novo em "${esc(w.name)}" para escolher os exercícios.</p></div>`
+    : Object.entries(groups).map(([g,list])=>`
+    <h3 class="group">${esc(g)}</h3>
+    ${list.map(e=>{
+      const st = STATE[e.state]||STATE.PROCURANDO;
+      const last = e.history[e.history.length-1];
+      return `<div class="card click" data-open="${e.id}">
+        <div class="row"><strong>${esc(e.name)}</strong><span class="sp"></span>
+          <span class="badge ${st.cls}">${st.label}</span></div>
+        <div class="row" style="margin-top:8px">
+          <div><div class="big">${e.load==null?'—':loadTxt(e,e.load)}</div>
+            <div class="muted">${e.sets} séries · ${e.repMin}–${e.repMax} reps · +${fmt(e.increment)}</div></div>
+          <span class="sp"></span>
+          <div style="text-align:right">${last?`<div class="pill">${last.sets.map(s=>s.reps).join(' / ')}</div>
+            <div class="muted">${dt(last.date)}</div>`:'<span class="muted">sem treinos</span>'}</div>
+        </div>
+        ${e.nextLoad!=null && e.nextLoad!==e.load ? `<div class="muted" style="margin-top:8px">→ próximo treino: <strong style="color:var(--acc)">${loadTxt(e,e.nextLoad)}</strong></div>`:''}
+      </div>`;
+    }).join('')}`).join('');
+
+  app.innerHTML = chips + body;
+  app.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>go({name:'detail',id:el.dataset.open,tab:'treino'}));
+  bindChips();
+}
+
+function bindChips(){
+  app.querySelectorAll('[data-w]').forEach(c=>c.onclick=()=>{
+    const id = c.dataset.w || null;
+    if(id && view.workout===id) formGrupo(id);      // já selecionado → editar
+    else go({workout:id});
+  });
+  const nw = app.querySelector('[data-neww]'); if(nw) nw.onclick=()=>formGrupo();
+}
+
+/* ===================== Detalhe ===================== */
+function renderDetail(){
+  const e = ex(view.id); if(!e) return go({name:'list'});
+  document.getElementById('title').textContent = e.name;
+  const st = STATE[e.state]||STATE.PROCURANDO;
+  const last = e.history[e.history.length-1];
+  const r = records(e);
+
+  const head = `<div class="card">
+    <div class="row"><span class="badge ${st.cls}">${st.label}</span><span class="sp"></span>
+      <button class="ghost" id="edit">Editar</button></div>
+    <div style="margin-top:10px"><div class="big">${e.load==null?'—':loadTxt(e,e.load)}</div>
+    <div class="muted">${e.sets} séries · faixa ${e.repMin}–${e.repMax} · incremento ${fmt(e.increment)}${e.unit==='nivel'?' nível':' '+e.unit}</div></div>
+    ${last? `<div class="sep"></div><div class="rec ${last.rec.action}">
+        <h4>${esc(last.rec.title)}</h4><div class="muted" style="color:var(--tx)">${esc(last.rec.msg)}</div></div>`:''}
+    ${e.load==null?`<div class="sep"></div><button class="primary" id="teste" style="width:100%">Fazer teste de carga</button>`:''}
+  </div>`;
+
+  const tabs = `<div class="tabs">
+    ${['treino','historico','recordes'].map(t=>`<button data-tab="${t}" aria-selected="${view.tab===t}">${
+      t==='treino'?'Próximo treino':t==='historico'?'Histórico':'Recordes'}</button>`).join('')}</div>`;
+
+  let body='';
+  if(view.tab==='treino'){
+    const alvo = e.nextLoad ?? e.load;
+    body = `<div class="card">
+      <label>Meta do próximo treino</label>
+      <div class="big">${alvo==null?'defina a carga':loadTxt(e,alvo)}</div>
+      <div class="muted" style="margin-top:6px">${
+        alvo==null ? 'Faça o teste de carga para começar.'
+        : e.nextLoad!==e.load ? `Carga aumentada. Espere cair para perto de ${e.repMin} repetições — isso é progressão válida.`
+        : `${e.sets}× até ${e.repMax} repetições com execução correta. Só suba a carga quando <strong>todas</strong> as séries chegarem a ${e.repMax}.`}</div>
+      <div class="sep"></div>
+      <button class="primary" id="reg" style="width:100%">Registrar treino</button>
+    </div>
+    <div class="card"><label>Ciclo</label>
+      <div class="muted">${Array.from({length:e.repMax-e.repMin+1},(_,i)=>e.repMin+i).join(' → ')} → <strong style="color:var(--acc)">aumenta carga</strong> → ${e.repMin} → …</div></div>`;
+  }
+  if(view.tab==='historico'){
+    body = !e.history.length ? `<div class="empty">Nenhum treino registrado.</div>` :
+    `<div class="card" style="overflow-x:auto"><table><thead><tr>
+      <th>Data</th><th>Carga</th><th>Séries</th><th>Vol.</th><th>Rec.</th><th></th></tr></thead><tbody>
+      ${[...e.history].reverse().map(h=>`<tr>
+        <td>${dt(h.date)}</td><td>${fmt(h.load)}</td>
+        <td>${h.sets.map(s=>`<span class="pill ${QUALITY[s.quality].valid ? (s.reps>=e.repMax?'max':s.reps<e.repMin?'low':'') : 'warnq'}" title="${QUALITY[s.quality].label}">${s.reps}</span>`).join('')}</td>
+        <td>${fmt(h.volume)}</td>
+        <td>${h.rec.action==='up'?'↑':h.rec.action==='down'?'↓':'='} ${fmt(h.rec.nextLoad)}</td>
+        <td><button class="danger" data-del="${h.id}" style="padding:2px 8px">×</button></td>
+      </tr>${h.notes?`<tr><td colspan="6" class="muted" style="padding-top:0">📝 ${esc(h.notes)}</td></tr>`:''}`).join('')}
+    </tbody></table></div>`;
+  }
+  if(view.tab==='recordes'){
+    const reps = Object.entries(r.repsByLoad).sort((a,b)=>b[0]-a[0]);
+    body = `<div class="grid g3">
+      <div class="card"><label>Recorde de carga</label><div class="big">${r.carga?fmt(r.carga.load):'—'}</div><div class="muted">${r.carga?dt(r.carga.date):''}</div></div>
+      <div class="card"><label>Recorde de volume</label><div class="big">${r.volume?fmt(r.volume.volume):'—'}</div><div class="muted">${r.volume?dt(r.volume.date):''}</div></div>
+      <div class="card"><label>Treinos</label><div class="big">${e.history.length}</div><div class="muted">registrados</div></div>
+    </div>
+    <div class="card"><label>Recorde de repetições por carga</label>
+      ${reps.length?reps.map(([l,v])=>`<div class="row" style="padding:5px 0;border-bottom:1px solid var(--line)">
+        <span>${loadTxt(e,+l)}</span><span class="sp"></span><strong>${v.reps} reps</strong>
+        <span class="muted" style="margin-left:8px">${dt(v.date)}</span></div>`).join(''):'<div class="muted">Sem séries válidas ainda.</div>'}</div>
+    <div class="card"><label>Volume</label><div class="muted">Volume = carga × repetições totais das séries.</div></div>
+    <div class="card"><button class="danger" id="delEx" style="width:100%">Excluir exercício</button></div>`;
+  }
+
+  app.innerHTML = head + tabs + body;
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>go({tab:b.dataset.tab}));
+  const on=(id,fn)=>{const el=document.getElementById(id); if(el) el.onclick=fn;};
+  on('edit',()=>formExercicio(e.id));
+  on('reg',()=>formTreino(e.id));
+  on('teste',()=>formTreino(e.id,true));
+  on('delEx',()=>{ if(confirm(`Excluir "${e.name}" e todo o histórico?`)){
+    db.exercises=db.exercises.filter(x=>x.id!==e.id);
+    db.workouts.forEach(w=>w.exIds=w.exIds.filter(i=>i!==e.id)); // remover dos treinos
+    save(); go({name:'list'}); }});
+  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    if(!confirm('Excluir este registro?')) return;
+    e.history = e.history.filter(h=>h.id!==b.dataset.del);
+    recompute(e); save(); render();
+  });
+}
+
+// Reprocessa todo o histórico com as regras/configurações atuais
+// (usado ao editar faixa/incremento e ao excluir registros)
+function recompute(e){
+  if(!e.history.length){
+    e.state = e.load==null ? 'PROCURANDO' : 'EVOLUINDO';
+    e.nextLoad = e.load; return;
+  }
+  const full = e.history;
+  full.forEach((h,i)=>{
+    e.history = full.slice(0,i); // analyze consulta o histórico anterior
+    h.rec = analyze(e, h.sets, h.load, !!h.test);
+  });
+  e.history = full;
+  const last = full[full.length-1];
+  e.state = last.rec.state; e.load = last.load; e.nextLoad = last.rec.nextLoad;
+}
+
+/* ===================== Diálogos ===================== */
+const dlg=document.getElementById('dlg'), dTitle=document.getElementById('dlgTitle'),
+      dBody=document.getElementById('dlgBody'), dFoot=document.getElementById('dlgFoot');
+function openDlg(title, html, buttons){
+  dTitle.textContent=title; dBody.innerHTML=html;
+  dFoot.innerHTML=''; buttons.forEach(b=>{
+    const el=document.createElement('button'); el.textContent=b.label;
+    if(b.primary) el.className='primary'; if(b.danger) el.className='danger';
+    el.onclick=b.onClick; dFoot.appendChild(el);
+  });
+  dlg.showModal();
+}
+const val=id=>document.getElementById(id).value.trim();
+const num=id=>parseFloat(document.getElementById(id).value.replace(',','.'));
+
+// Combobox: input livre + dropdown estilizado que filtra ao digitar.
+// getOpts() retorna [{v, tag?}]; onPick roda ao escolher uma opção.
+function combo(inputId, getOpts, onPick){
+  const inp = document.getElementById(inputId);
+  const wrap = inp.parentElement; wrap.classList.add('combo');
+  const panel = document.createElement('div'); panel.className='combo-list'; wrap.appendChild(panel);
+  const show = () => {
+    const q = inp.value.trim().toLowerCase();
+    const opts = getOpts().filter(o => !q || o.v.toLowerCase().includes(q));
+    panel.innerHTML = opts.slice(0,80).map((o,i) =>
+      `<div class="combo-opt" data-i="${i}">${esc(o.v)}${o.tag?`<span class="combo-tag">${esc(o.tag)}</span>`:''}</div>`).join('');
+    panel.style.display = opts.length ? 'block' : 'none';
+    panel.querySelectorAll('.combo-opt').forEach(d => d.onpointerdown = ev => {
+      ev.preventDefault();
+      inp.value = opts[+d.dataset.i].v;
+      panel.style.display='none';
+      onPick && onPick(inp.value);
+    });
+  };
+  inp.addEventListener('focus', show);
+  inp.addEventListener('input', show);
+  inp.addEventListener('blur', () => setTimeout(()=>panel.style.display='none',150));
+}
+
+const MUSCLES = ['Peito','Costas','Ombro','Bíceps','Tríceps','Quadríceps','Posterior de coxa','Glúteo','Panturrilha','Abdômen','Antebraço','Trapézio','Lombar'];
+const EXERCISES = {
+  'Peito':['Supino reto','Supino inclinado','Supino declinado','Supino com halteres','Crucifixo','Crossover','Peck deck','Flexão de braço'],
+  'Costas':['Puxada frontal','Puxada fechada','Barra fixa','Remada curvada','Remada baixa','Remada unilateral','Remada cavalinho','Pulldown'],
+  'Ombro':['Desenvolvimento militar','Desenvolvimento com halteres','Elevação lateral','Elevação frontal','Crucifixo inverso','Remada alta'],
+  'Bíceps':['Rosca direta','Rosca alternada','Rosca martelo','Rosca scott','Rosca concentrada','Rosca no cabo'],
+  'Tríceps':['Tríceps pulley','Tríceps corda','Tríceps testa','Tríceps francês','Mergulho no banco','Paralelas'],
+  'Quadríceps':['Agachamento livre','Agachamento no smith','Leg press','Cadeira extensora','Hack machine','Afundo','Búlgaro'],
+  'Posterior de coxa':['Stiff','Mesa flexora','Cadeira flexora','Levantamento terra romeno'],
+  'Glúteo':['Elevação pélvica','Cadeira abdutora','Coice no cabo','Agachamento sumô'],
+  'Panturrilha':['Panturrilha em pé','Panturrilha sentado','Panturrilha no leg press'],
+  'Abdômen':['Abdominal supra','Prancha','Abdominal infra','Abdominal na máquina','Elevação de pernas'],
+  'Antebraço':['Rosca punho','Rosca punho inversa'],
+  'Trapézio':['Encolhimento com halteres','Encolhimento na barra'],
+  'Lombar':['Levantamento terra','Hiperextensão lombar','Good morning'],
+};
+function formExercicio(id){
+  const e = id?ex(id):null;
+  const muscleOpts = () => [...new Set([...MUSCLES, ...db.exercises.map(x=>x.muscle)])]
+    .filter(m=>m&&m!=='Sem grupo').sort().map(v=>({v}));
+  const nameOpts = () => {
+    const m = val('f_muscle');
+    const mine = db.exercises.map(x=>({v:x.name, tag:x.muscle}));
+    const base = m && EXERCISES[m]
+      ? EXERCISES[m].map(v=>({v, tag:m}))
+      : Object.entries(EXERCISES).flatMap(([g,list])=>list.map(v=>({v, tag:g})));
+    const seen = new Set();
+    return [...mine, ...base].filter(o=>!seen.has(o.v)&&seen.add(o.v)).sort((a,b)=>a.v.localeCompare(b.v));
+  };
+  openDlg(e?'Editar exercício':'Novo exercício', `
+    <div class="grid">
+      <div><label>Grupo muscular</label>
+        <input id="f_muscle" value="${e?esc(e.muscle):''}" placeholder="Escolha ou digite (Peito, Costas…)" autocomplete="off"></div>
+      <div><label>Nome do exercício</label>
+        <input id="f_name" value="${e?esc(e.name):''}" placeholder="Escolha ou digite (Supino reto…)" autocomplete="off"></div>
+      <div class="grid g3">
+        <div><label>Séries</label><input id="f_sets" type="number" min="1" value="${e?e.sets:3}"></div>
+        <div><label>Rep. mín.</label><input id="f_min" type="number" min="1" value="${e?e.repMin:8}"></div>
+        <div><label>Rep. máx.</label><input id="f_max" type="number" min="1" value="${e?e.repMax:12}"></div>
+      </div>
+      <div class="grid g3">
+        <div><label>Carga atual</label><input id="f_load" inputmode="decimal" value="${e&&e.load!=null?fmt(e.load):''}" placeholder="opcional"></div>
+        <div><label>Unidade</label><select id="f_unit">
+          ${['kg','lb','nivel'].map(x=>`<option value="${x}" ${e&&e.unit===x?'selected':''}>${x==='nivel'?'nível':x}</option>`).join('')}</select></div>
+        <div><label>Incremento</label><input id="f_inc" inputmode="decimal" value="${e?fmt(e.increment):'2'}"></div>
+      </div>
+      <div class="muted">Faixas comuns: 6–8 · 8–10 · 8–12 · 10–15 · 12–15</div>
+    </div>`,
+    [{label:'Cancelar',onClick:()=>dlg.close()},
+     {label:'Salvar',primary:true,onClick:()=>{
+        const name=val('f_name'); if(!name) return alert('Informe o nome.');
+        const min=num('f_min'), max=num('f_max');
+        if(!(min>=1&&max>=min)) return alert('Faixa de repetições inválida.');
+        const loadRaw=val('f_load'); const load = loadRaw===''?null:num('f_load');
+        const obj = {
+          name, muscle:val('f_muscle')||'Sem grupo',
+          sets:Math.max(1,num('f_sets')||1), repMin:min, repMax:max,
+          load, unit:val('f_unit')||'kg', increment:Math.max(0.1,num('f_inc')||1),
+        };
+        if(e){
+          const manualLoad = load!==e.load; // carga digitada à mão prevalece
+          Object.assign(e,obj);
+          recompute(e); // faixa/incremento novos ⇒ recomendações refeitas
+          if(manualLoad && load!=null){ e.load=load; e.nextLoad=load; }
+        }
+        else db.exercises.push({id:uid(),...obj,nextLoad:load,state:load==null?'PROCURANDO':'EVOLUINDO',history:[]});
+        save(); dlg.close(); render();
+     }}]);
+  // comboboxes: nome filtra pelo grupo; escolher um nome preenche o grupo
+  combo('f_muscle', muscleOpts);
+  combo('f_name', nameOpts, v => {
+    if(val('f_muscle')) return;
+    const g = Object.keys(EXERCISES).find(k=>EXERCISES[k].includes(v)) || db.exercises.find(x=>x.name===v)?.muscle;
+    if(g) document.getElementById('f_muscle').value = g;
+  });
+}
+
+function formGrupo(id){
+  const w = id ? db.workouts.find(x=>x.id===id) : null;
+  const byMuscle = {};
+  db.exercises.forEach(e=>{ (byMuscle[e.muscle||'Sem grupo'] ||= []).push(e); });
+  const buttons = [
+    {label:'Cancelar',onClick:()=>dlg.close()},
+    {label:'Salvar',primary:true,onClick:()=>{
+      const name = val('w_name'); if(!name) return alert('Dê um nome ao treino. Ex.: Treino A');
+      const exIds = [...document.querySelectorAll('[data-wex]:checked')].map(c=>c.dataset.wex);
+      if(w){ w.name=name; w.exIds=exIds; }
+      else { const nw={id:uid(),name,exIds}; db.workouts.push(nw); view.workout=nw.id; }
+      save(); dlg.close(); render();
+    }}];
+  if(w) buttons.unshift({label:'Excluir',danger:true,onClick:()=>{
+    if(!confirm(`Excluir o treino "${w.name}"? Os exercícios não são apagados.`)) return;
+    db.workouts = db.workouts.filter(x=>x.id!==w.id);
+    if(view.workout===w.id) view.workout=null;
+    save(); dlg.close(); render();
+  }});
+  openDlg(w?'Editar treino':'Novo treino', `
+    <div class="grid">
+      <div><label>Nome do treino</label>
+        <input id="w_name" value="${w?esc(w.name):''}" placeholder="Treino A — Peito e Tríceps" autocomplete="off"></div>
+      <div><label>Exercícios deste treino</label>
+        ${db.exercises.length ? Object.entries(byMuscle).map(([g,list])=>`
+          <div class="muted" style="margin:10px 4px 2px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.06em">${esc(g)}</div>
+          ${list.map(e=>`<label class="checkrow" style="text-transform:none;letter-spacing:0;font-size:15px;color:var(--tx);font-weight:500;margin:0">
+            <input type="checkbox" data-wex="${e.id}" ${w&&w.exIds.includes(e.id)?'checked':''}>
+            ${esc(e.name)}<span class="muted">${e.load!=null?loadTxt(e,e.load):''}</span>
+          </label>`).join('')}`).join('')
+        : '<div class="muted">Cadastre exercícios primeiro para montar o treino.</div>'}
+      </div>
+    </div>`, buttons);
+}
+
+function formTreino(id, isTest){
+  const e = ex(id);
+  const start = e.nextLoad ?? e.load ?? '';
+  const n = e.sets;
+  openDlg(isTest?'Teste de carga':'Registrar treino', `
+    <div class="grid">
+      <div class="grid g2">
+        <div><label>Carga usada (${u(e)})</label><input id="t_load" inputmode="decimal" value="${start===''?'':fmt(start)}"></div>
+        <div><label>Data</label><input id="t_date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div>
+        <label>Séries — repetições e qualidade</label>
+        ${Array.from({length:isTest?1:n},(_,i)=>`<div class="setrow">
+          <div class="muted">S${i+1}</div>
+          <div><input id="t_r${i}" type="number" min="0" placeholder="reps"></div>
+          <div><select id="t_q${i}">${Object.entries(QUALITY).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></div>
+        </div>`).join('')}
+      </div>
+      <div><label>Observações</label><textarea id="t_notes" rows="2" placeholder="opcional"></textarea></div>
+      ${isTest?'<div class="muted">No teste, faça o máximo de repetições possíveis com execução correta.</div>':''}
+    </div>`,
+    [{label:'Cancelar',onClick:()=>dlg.close()},
+     {label:'Salvar',primary:true,onClick:()=>{
+        const load = num('t_load');
+        if(!(load>0)) return alert('Informe a carga.');
+        const count = isTest?1:n; const sets=[];
+        for(let i=0;i<count;i++){
+          const r = parseInt(document.getElementById('t_r'+i).value,10);
+          if(!(r>=0)) return alert(`Informe as repetições da série ${i+1}.`);
+          sets.push({reps:r, quality:document.getElementById('t_q'+i).value});
+        }
+        const volume = round(load * sets.reduce((a,s)=>a+s.reps,0));
+        e.history.push({id:uid(), date:val('t_date'), load, sets, volume,
+                        notes:val('t_notes'), rec:null, test:!!isTest});
+        e.history.sort((a,b)=>a.date.localeCompare(b.date));
+        recompute(e);
+        save(); dlg.close();
+        if(view.name==='list') go({name:'detail',id:e.id,tab:'treino'}); else render();
+     }}]);
+}
+
+/* ===================== Export / Import ===================== */
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='progressao-carga.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('fileIn').click();
+document.getElementById('fileIn').onchange=ev=>{
+  const f=ev.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const d=JSON.parse(rd.result);
+      if(!Array.isArray(d.exercises)) throw 0;
+      if(confirm('Substituir todos os dados atuais?')){ db=d; save(); go({name:'list'}); }
+    }catch(err){ alert('Arquivo inválido.'); } };
+  rd.readAsText(f); ev.target.value='';
+};
+
+/* ===================== util ===================== */
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dt(s){ const [y,m,d]=String(s).split('-'); return `${d}/${m}/${y.slice(2)}`; }
+
+render();
+
+/* ===================== PWA ===================== */
+// SW só registra quando servido via http(s) — em file:// o app funciona normal, sem offline/instalação.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
