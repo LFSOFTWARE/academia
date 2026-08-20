@@ -1,5 +1,5 @@
 // Service worker — offline-first para assets, sempre atualizado para o HTML.
-const CACHE = 'progressao-carga-v4';
+const CACHE = 'progressao-carga-v5';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', e => {
