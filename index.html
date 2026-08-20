@@ -148,6 +148,24 @@
   .checkrow input{width:22px;height:22px;flex:none;accent-color:var(--acc);border-radius:6px}
   .checkrow .muted{margin-left:auto}
 
+  /* ---- tutorial ---- */
+  .tut h4{margin:22px 0 8px;font-size:16px;letter-spacing:-.2px}
+  .tut h4:first-child{margin-top:4px}
+  .tut p{margin:0 0 10px;color:#c8cede;font-size:14.5px}
+  .tut ol{margin:0 0 10px;padding-left:20px;color:#c8cede;font-size:14.5px}
+  .tut li{margin-bottom:8px}
+  .tut .box{background:var(--card2);border-radius:14px;padding:14px;margin:12px 0;font-size:14px}
+  .tut .box b{color:var(--tx)}
+  .tut .ex{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .tut .ex:last-child{border-bottom:none}
+  .tut .ex .n{flex:none;width:74px;font-weight:800;font-size:15px}
+  .tut .arrow{font-weight:700}
+  .tut .up{color:#57d894} .tut .down{color:#ff8a91} .tut .keep{color:#ffd27d}
+  .tut .cycle{background:var(--card2);border-radius:14px;padding:14px;text-align:center;font-weight:700;letter-spacing:.3px;color:var(--acc2)}
+  .helpline{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;
+    padding:13px 15px;margin-bottom:14px;cursor:pointer;font-size:14px;font-weight:600}
+  .helpline .sp{flex:1}
+
   .setrow{display:grid;grid-template-columns:44px 1fr 1.3fr;gap:8px;align-items:center;margin-bottom:10px}
   .setrow .muted{text-align:center;font-weight:700}
   .empty{text-align:center;color:var(--tx2);padding:70px 20px}
@@ -161,6 +179,7 @@
 <header>
   <h1 id="title">Progressão de Carga</h1>
   <button class="ghost" id="backBtn" style="display:none">← Voltar</button>
+  <button class="ghost" id="helpBtn" title="Como testar o peso">?</button>
   <button class="ghost" id="exportBtn" title="Exportar dados">⇩</button>
   <button class="ghost" id="importBtn" title="Importar dados">⇧</button>
 </header>
@@ -311,6 +330,7 @@ let view = {name:'list', id:null, tab:'treino', workout:null};
 function go(v){ view={...view,...v}; render(); }
 
 const app = document.getElementById('app');
+document.getElementById('helpBtn').onclick = abrirTutorial;
 document.getElementById('backBtn').onclick = ()=>go({name:'list',id:null});
 document.getElementById('fab').onclick = ()=> view.name==='list' ? formExercicio() : formTreino(view.id);
 
@@ -318,6 +338,50 @@ function render(){
   document.getElementById('backBtn').style.display = view.name==='list'?'none':'';
   document.getElementById('fab').textContent = view.name==='list'?'+ Exercício':'+ Registrar treino';
   view.name==='list' ? renderList() : renderDetail();
+}
+
+/* ===================== Tutorial ===================== */
+function tutorialHTML(){
+  return `<div class="tut">
+    <p>Antes de progredir, você precisa achar o peso certo. O teste leva <b>uma série só</b> e serve para descobrir com qual carga você fica dentro da sua faixa de repetições (o padrão é <b>8 a 12</b>).</p>
+
+    <h4>1. Aqueça primeiro</h4>
+    <p>Faça 1 ou 2 séries bem leves (uns 50% do que você acha que aguenta), sem cansar. O teste não vale se você chegar frio.</p>
+
+    <h4>2. Escolha um peso de palpite</h4>
+    <p>Chute um peso que você acredita conseguir fazer umas <b>10 repetições</b>. Errar aqui é normal — o teste existe justamente para corrigir o chute.</p>
+
+    <h4>3. Faça o máximo de repetições com execução correta</h4>
+    <p>Pare quando a técnica começar a quebrar: quando você precisar de impulso, arquear as costas, ou pedir ajuda. Repetição feia não conta.</p>
+    <div class="box">Descanse de <b>2 a 3 minutos</b> antes de qualquer nova tentativa. Testar cansado dá um resultado falso — e o app vai te recomendar um peso menor do que o seu real.</div>
+
+    <h4>4. Leia o resultado</h4>
+    <div class="ex"><span class="n down">7 ou −</span><span class="arrow down">↓</span><span>Pesado demais. Baixe a carga e teste de novo.</span></div>
+    <div class="ex"><span class="n keep">8 a 12</span><span class="arrow keep">✓</span><span>É essa! Use esse peso nos próximos treinos.</span></div>
+    <div class="ex"><span class="n up">13 ou +</span><span class="arrow up">↑</span><span>Leve demais. Suba a carga e teste de novo.</span></div>
+    <p class="muted">O app faz essa leitura sozinho — é só registrar o teste que ele te diz o próximo passo.</p>
+
+    <h4>5. Repita até acertar</h4>
+    <p>Normalmente 2 ou 3 tentativas bastam. Ajuste em passos pequenos: cerca de <b>10%</b> da carga por tentativa, ou o menor incremento disponível (a menor anilha, ou um nível da máquina).</p>
+
+    <h4>Depois de achar o peso</h4>
+    <p>O jogo muda: agora você <b>não sobe a carga</b>. Mantém o mesmo peso e vai somando repetições treino a treino, até chegar ao topo da faixa em <b>todas</b> as séries. Só aí a carga sobe — e as repetições caem de volta para perto do mínimo, o que é esperado e correto.</p>
+    <div class="cycle">8 → 9 → 10 → 11 → 12 → sobe a carga → 8 → 9 → …</div>
+
+    <h4>Dicas que evitam erro</h4>
+    <ul style="padding-left:20px;color:#c8cede;font-size:14.5px">
+      <li style="margin-bottom:8px">Teste um exercício por vez, no começo do treino.</li>
+      <li style="margin-bottom:8px">Em máquinas sem peso escrito, use o número do pino e escolha a unidade <b>nível</b>.</li>
+      <li style="margin-bottom:8px">Exercícios grandes (agachamento, supino) sobem de carga mais rápido que os pequenos (rosca, elevação lateral). Nos pequenos, incremento de 1 a 2 kg já é bastante.</li>
+      <li>Se marcou a série como <em>ajuda</em>, <em>parcial</em> ou <em>execução comprometida</em>, o app não usa aquilo para liberar aumento de carga — e isso é proposital.</li>
+    </ul>
+  </div>`;
+}
+
+function abrirTutorial(){
+  openDlg('Como testar o peso inicial', tutorialHTML(), [
+    {label:'Entendi', primary:true, onClick:()=>{ db.tutSeen=true; save(); dlg.close(); render(); }}
+  ]);
 }
 
 /* ===================== Lista ===================== */
@@ -335,8 +399,9 @@ function renderList(){
 
   if(!db.exercises.length){
     app.innerHTML = chips + `<div class="empty"><div class="icon">🏋️</div><p><strong>Nenhum exercício ainda.</strong></p>
-      <p class="muted">Cadastre um exercício e faça o <em>teste de carga</em> para descobrir o peso inicial.</p></div>`;
-    bindChips(); return;
+      <p class="muted">Cadastre um exercício e faça o <em>teste de carga</em> para descobrir o peso inicial.</p>
+      <button class="primary" style="margin-top:16px" data-tut="1">Como testar o peso &rarr;</button></div>`;
+    bindChips(); bindTut(); return;
   }
 
   let list = db.exercises;
@@ -366,9 +431,18 @@ function renderList(){
       </div>`;
     }).join('')}`).join('');
 
-  app.innerHTML = chips + body;
+  // dica fixa até o usuário marcar "Entendi"
+  const help = db.tutSeen ? '' :
+    `<div class="helpline" data-tut="1">💡<span class="sp">Não sabe qual peso usar? Veja como testar.</span><span class="muted">›</span></div>`;
+
+  app.innerHTML = chips + help + body;
+  bindTut();
   app.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>go({name:'detail',id:el.dataset.open,tab:'treino'}));
   bindChips();
+}
+
+function bindTut(){
+  app.querySelectorAll('[data-tut]').forEach(el=>el.onclick=ev=>{ ev.stopPropagation(); abrirTutorial(); });
 }
 
 function bindChips(){
@@ -490,6 +564,7 @@ function openDlg(title, html, buttons){
     if(b.primary) el.className='primary'; if(b.danger) el.className='danger';
     el.onclick=b.onClick; dFoot.appendChild(el);
   });
+  dBody.querySelectorAll('[data-tut]').forEach(el=>el.onclick=()=>abrirTutorial());
   dlg.showModal();
 }
 const val=id=>document.getElementById(id).value.trim();
@@ -650,7 +725,7 @@ function formTreino(id, isTest){
         </div>`).join('')}
       </div>
       <div><label>Observações</label><textarea id="t_notes" rows="2" placeholder="opcional"></textarea></div>
-      ${isTest?'<div class="muted">No teste, faça o máximo de repetições possíveis com execução correta.</div>':''}
+      ${isTest?'<div class="helpline" data-tut="1" style="margin:0">💡<span class="sp">Faça o máximo de repetições com execução correta. Ver o passo a passo.</span><span class="muted">›</span></div>':''}
     </div>`,
     [{label:'Cancelar',onClick:()=>dlg.close()},
      {label:'Salvar',primary:true,onClick:()=>{
