@@ -32,8 +32,10 @@
   /* ---- top bar ---- */
   header{position:sticky;top:0;z-index:10;background:#0b0d12d9;backdrop-filter:blur(16px);
     padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;display:flex;align-items:center;gap:8px}
-  header h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0;flex:1;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0;flex:1;min-width:0;
+    overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+    line-height:1.15;word-break:break-word}
+  header h1.long{font-size:18px}
   header button{border:none;background:var(--card2);width:38px;height:38px;min-width:38px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-size:16px;padding:0;flex:none}
   #backBtn{width:auto;padding:0 14px;border-radius:999px;font-size:14px}
@@ -211,11 +213,11 @@
 /* ===================== Modelo & persistência ===================== */
 const KEY = 'progressao-carga-v1';
 const QUALITY = {
-  correta:      {label:'Execução correta',     valid:true},
-  comprometida: {label:'Execução comprometida',valid:false},
-  ajuda:        {label:'Ajuda de outra pessoa',valid:false},
-  parcial:      {label:'Repetição parcial',    valid:false},
-  falha:        {label:'Falha técnica',        valid:false},
+  correta:      {label:'Execução correta',     short:'Correta',      valid:true},
+  comprometida: {label:'Execução comprometida',short:'Comprometida', valid:false},
+  ajuda:        {label:'Ajuda de outra pessoa',short:'Com ajuda',    valid:false},
+  parcial:      {label:'Repetição parcial',    short:'Parcial',      valid:false},
+  falha:        {label:'Falha técnica',        short:'Falha técnica',valid:false},
 };
 const STATE = {
   PROCURANDO: {label:'Procurando carga',   cls:'b-proc'},
@@ -349,7 +351,11 @@ document.getElementById('backBtn').onclick = ()=>go({name:'list',id:null});
 document.getElementById('fab').onclick = ()=> view.name==='list' ? formExercicio() : formTreino(view.id);
 
 function render(){
-  document.getElementById('backBtn').style.display = view.name==='list'?'none':'';
+  const detalhe = view.name!=='list';
+  document.getElementById('backBtn').style.display = detalhe?'':'none';
+  // no detalhe o nome do exercício precisa do espaço: some com exportar/importar
+  document.getElementById('exportBtn').style.display = detalhe?'none':'';
+  document.getElementById('importBtn').style.display = detalhe?'none':'';
   document.getElementById('fab').textContent = view.name==='list'?'+ Exercício':'+ Registrar treino';
   view.name==='list' ? renderList() : renderDetail();
 }
@@ -471,7 +477,9 @@ function bindChips(){
 /* ===================== Detalhe ===================== */
 function renderDetail(){
   const e = ex(view.id); if(!e) return go({name:'list'});
-  document.getElementById('title').textContent = e.name;
+  const t = document.getElementById('title');
+  t.textContent = e.name;
+  t.classList.toggle('long', e.name.length > 18); // nomes longos em corpo menor
   const st = STATE[e.state]||STATE.PROCURANDO;
   const last = e.history[e.history.length-1];
   const r = records(e);
@@ -735,7 +743,7 @@ function formTreino(id, isTest){
         ${Array.from({length:isTest?1:n},(_,i)=>`<div class="setrow">
           <div class="muted">S${i+1}</div>
           <div><input id="t_r${i}" type="number" min="0" placeholder="reps"></div>
-          <div><select id="t_q${i}">${Object.entries(QUALITY).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></div>
+          <div><select id="t_q${i}">${Object.entries(QUALITY).map(([k,v])=>`<option value="${k}">${v.short}</option>`).join('')}</select></div>
         </div>`).join('')}
       </div>
       <div><label>Observações</label><textarea id="t_notes" rows="2" placeholder="opcional"></textarea></div>
