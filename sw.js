@@ -1,5 +1,5 @@
 // Service worker — offline-first para assets, sempre atualizado para o HTML.
-const CACHE = 'progressao-carga-v3';
+const CACHE = 'progressao-carga-v4';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', e => {
@@ -19,8 +19,10 @@ self.addEventListener('fetch', e => {
 
   if (isHTML) {
     // network-first: online sempre pega a versão nova; offline cai no cache.
+    // cache:'no-cache' força revalidar com o servidor (ETag): o GitHub Pages
+    // manda max-age=600, que senão prenderia a versão antiga por 10 minutos.
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request.url, {cache: 'no-cache', credentials: 'same-origin'})
         .then(res => { caches.open(CACHE).then(c => c.put(e.request, res.clone())); return res; })
         .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
     );
